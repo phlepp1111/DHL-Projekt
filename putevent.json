@@ -1,0 +1,52 @@
+{
+    "resource": "/order",
+    "path": "/order",
+    "httpMethod": "PUT",
+    "requestContext": {
+        "resourcePath": "/order",
+        "httpMethod": "PUT",
+        "path": "/Prod/order"
+    },
+    "headers": {
+        "accept": "application/json",
+        "accept-encoding": "gzip, deflate, br",
+        "Host": "70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36",
+        "X-Amzn-Trace-Id": "Root=1-5e66d96f-7491f09xmpl79d18acf3d050"
+    },
+    "multiValueHeaders": {
+        "accept": ["application/json"],
+        "accept-encoding": ["gzip, deflate, br"]
+    },
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": {
+        "recipient": {
+            "name": "Max Mustermann",
+            "address": "Musterstraße 1, 12345 Musterstadt",
+            "phone": "0123456789"
+        },
+        "sender": {
+            "name": "Anna Schmidt",
+            "address": "Beispielweg 2, 67890 Beispieldorf",
+            "phone": "0987654321"
+        },
+        "dimensions": {
+            "length": 50,
+            "width": 30,
+            "height": 20
+        },
+        "weight": 5,
+        "packageID": "FP123456789",
+        "date": "2023-10-05",
+        "insurance": {
+            "type": "Premium",
+            "value": 1000
+        },
+        "restrictions": ["Sperrgut", "Zerbrechlich"],
+        "value": 500
+    },
+    "isBase64Encoded": false
+}
