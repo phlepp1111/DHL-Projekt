@@ -9,8 +9,9 @@ table_name = 'Orders'  # Update with your DynamoDB table name
 
 def lambda_handler(event, context):
     try:
-        # Parse the input JSON data
-        event_body = json.loads(event['body'])
+        # Parse the input JSON data and parse the nested JSON in the "body" field
+        input_data = json.loads(event['body'])
+        event_body = json.loads(input_data)
 
         # Extract relevant data
         package_id = event_body['packageID']
