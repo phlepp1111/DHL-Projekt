@@ -84,7 +84,7 @@ resource "aws_iam_policy" "lambda_policy" {
       "logs:PutLogEvents"
     ],
     Effect = "Allow",
-    Resource = "arn:aws:logs:::*"
+    Resource = "*"
     }
     
     ]
