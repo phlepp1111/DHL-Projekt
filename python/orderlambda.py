@@ -1,40 +1,59 @@
-import json
 import boto3
+import random
+import string
+import time
+from datetime import date
 
-# Initialize the DynamoDB client
-dynamodb = boto3.client('dynamodb')
+# Initialize the DynamoDB resource
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('Orders')  # Replace 'YourTableName' with your table's name
 
-# Define the DynamoDB table name
-table_name = 'Orders'  # Update with your DynamoDB table name
+def random_string(length):
+    """Generate a random string of fixed length."""
+    letters = string.ascii_letters + string.digits + " "
+    return ''.join(random.choice(letters) for i in range(length))
+
+def random_phone():
+    """Generate a random phone number."""
+    return ''.join(random.choice(string.digits) for i in range(10))
+
+def generate_packageID():
+    """Generate a unique packageID."""
+    timestamp = int(time.time() * 1000)  # Current time in milliseconds
+    random_digits = ''.join(random.choice(string.digits) for i in range(4))
+    return f"FP{timestamp}{random_digits}"
 
 def lambda_handler(event, context):
     try:
-        # Parse the input JSON data and parse the nested JSON in the "body" field
-        input_data = json.loads(event['body'])
-        event_body = json.loads(input_data)
+        # Create a random item
+        item = {
+            "recipient_name": random_string(10),
+            "recipient_address": random_string(25),
+            "recipient_phone": random_phone(),
+            "sender_name": random_string(10),
+            "sender_address": random_string(25),
+            "sender_phone": random_phone(),
+            "dimensions_length": random.randint(1, 100),
+            "dimensions_width": random.randint(1, 100),
+            "dimensions_height": random.randint(1, 100),
+            "weight": random.randint(1, 50),
+            "packageID": generate_packageID(),
+            "date": str(date.today()),  # Insert today's date
+            "insurance_type": random.choice(["Basic", "Premium", "Gold"]),
+            "insurance_value": random.randint(1, 5000),
+            "restrictions": random.choice(["Sperrgut", "Zerbrechlich", "Liquid", "Flammable"]),  # Two random restrictions
+            "value": random.randint(1, 1000)
+        }
 
-        # Extract relevant data
-        package_id = event_body['packageID']
-        recipient_name = event_body['recipient']['name']
-        sender_name = event_body['sender']['name']
-
-        # Put the data into DynamoDB
-        response = dynamodb.put_item(
-            TableName=table_name,
-            Item={
-                'packageID': {'S': package_id},
-                'RecipientName': {'S': recipient_name},
-                'SenderName': {'S': sender_name}
-                # Add more attributes as needed
-            }
-        )
+        # Insert the item into the DynamoDB table
+        table.put_item(Item=item)
 
         return {
             'statusCode': 200,
-            'body': json.dumps('Data added to DynamoDB successfully!')
+            'body': f'Successfully inserted item with packageID {item["packageID"]}'
         }
     except Exception as e:
         return {
             'statusCode': 500,
-            'body': json.dumps(f'Error: {str(e)}')
+            'body': f'Error inserting item into DynamoDB: {str(e)}'
         }
