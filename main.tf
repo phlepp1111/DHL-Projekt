@@ -41,6 +41,7 @@ resource "aws_lambda_function" "orderput" {
   environment {
     variables = {
       DYNAMODB_TABLE = aws_dynamodb_table.OrderDB.name
+      SQS_QUEUE_URL  = aws_sqs_queue.order_queue.id
     }
   }
 }
@@ -55,6 +56,7 @@ resource "aws_lambda_function" "driverput" {
   environment {
     variables = {
       DYNAMODB_TABLE = aws_dynamodb_table.DriverDB.name
+      
     }
   }
 }
@@ -169,7 +171,7 @@ resource "aws_iam_policy" "sqs_policy" {
           "sqs:GetQueueUrl",
         ],
         Effect   = "Allow",
-        Resource = "*",
+        Resource = aws_sqs_queue.order_queue.arn,
       },
     ],
   })
