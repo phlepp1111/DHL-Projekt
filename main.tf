@@ -44,7 +44,20 @@ resource "aws_lambda_function" "orderput" {
     }
   }
 }
+resource "aws_lambda_function" "driverput" {
+  function_name = "driverlambda"
+  role          = aws_iam_role.lambda_exec_role.arn
+  handler       = "addDrivers.lambda_handler" 
+  runtime       = "python3.9"  
 
+  filename = "./python/addDrivers.zip"
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE = aws_dynamodb_table.DriverDB.name
+    }
+  }
+}
 
 resource "aws_iam_role" "lambda_exec_role" {
   name = "lambda-exec-role"
@@ -64,6 +77,11 @@ resource "aws_iam_role" "lambda_exec_role" {
 resource "aws_iam_policy_attachment" "lambda_exec_policy" {
   name = "Lambda-exec"
   policy_arn = aws_iam_policy.lambda_policy.arn
+  roles      = [aws_iam_role.lambda_exec_role.name]
+}
+resource "aws_iam_policy_attachment" "sqs_exec_policy" {
+  name = "Lambda-SQS"
+  policy_arn = aws_iam_policy.sqs_policy.arn
   roles      = [aws_iam_role.lambda_exec_role.name]
 }
 
@@ -112,4 +130,48 @@ resource "aws_dynamodb_table" "OrderDB" {
   }
 }
 
+resource "aws_dynamodb_table" "DriverDB" {
+  name           = "Drivers"
+  hash_key = "driverID"
+  read_capacity = 20
+  write_capacity = 20
+
+  #stream aktivieren
+  stream_view_type = "NEW_IMAGE"
+  stream_enabled   = true
+
+  attribute {
+    name = "driverID"
+    type = "S"
+  }
+}
+###################################################
+
+###################SQS#############################
+resource "aws_sqs_queue" "order_queue" {
+  name                        = "order-queue.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = true
+}
+
+resource "aws_iam_policy" "sqs_policy" {
+  name = "sqs-policy"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl",
+        ],
+        Effect   = "Allow",
+        Resource = "*",
+      },
+    ],
+  })
+}
 ###################################################

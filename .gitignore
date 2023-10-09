@@ -13,3 +13,5 @@ crash.log
 
 # Ignore .tfplan files
 *.tfplan
+
+**/.vscode
