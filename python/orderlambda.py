@@ -3,6 +3,7 @@ import random
 import string
 import time
 from datetime import date
+import json
 import os
 
 # Initialize the DynamoDB resource
@@ -50,23 +51,16 @@ def lambda_handler(event, context):
             "insurance_type": random.choice(["Basic", "Premium", "Gold"]),
             "insurance_value": random.randint(1, 5000),
             "restrictions": random.choice(
-                ["Sperrgut", "Zerbrechlich", "Liquid", "Flammable"]
-            ),  # Two random restrictions
+                ["normale Lieferung", "Sperrgut", "Zerbrechlich", "Liquid", "Flammable"]
+            ),
             "value": random.randint(1, 1000),
+            "lieferstatus": "Auslieferung ausstehend",
         }
 
         # Insert the item into the DynamoDB table
         table.put_item(Item=item)
 
-        message_body = (
-            "ItemID: "
-            + item["packageID"]
-            + ", Restrictions: "
-            + item["restrictions"]
-            + ", Date: "
-            + item["date"]
-        )
-        # sqs.Queue(sqs_queue_url).send_message(MessageBody=message_body)
+        message_body = json.dumps(item)
         sqs.send_message(
             QueueUrl=sqs_queue_url,
             MessageBody=message_body,

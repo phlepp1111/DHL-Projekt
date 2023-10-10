@@ -27,7 +27,7 @@ def lambda_handler(event, context):
             "driver_name": random_string(10) + " " + random_string(10),
             "driverID": generate_driverID(),
             "lieferung": "null",
-            "status": "verfügbar",
+            "driverstatus": "available",
         }
 
         # Insert the driver into the DynamoDB table

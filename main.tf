@@ -7,27 +7,34 @@ provider "aws" {
 resource "aws_lambda_function" "get_driver" {
   function_name = "getdriverlambda"
   role          = aws_iam_role.lambda_exec_role.arn
-  handler       = "index.lambda_handler" 
+  handler       = "getDriver.lambda_handler" 
   runtime       = "python3.9"  
   
-
-  filename = "./getdriver/index.zip"
-}
-
-resource "aws_lambda_event_source_mapping" "dynamodb_event_source" {
-  event_source_arn = aws_dynamodb_table.OrderDB.stream_arn
-  function_name = aws_lambda_function.get_driver.arn
-  starting_position          = "LATEST"
-
-  filter_criteria {
-    filter {
-      pattern = jsonencode({
-        eventName = ["INSERT"],
-        eventSource = ["aws:dynamodb"]
-      })
+  filename = "./python/getDriver.zip"
+  environment {
+    variables = {
+      ORDERDB_TABLE = aws_dynamodb_table.OrderDB.name
+      SQS_QUEUE_URL  = aws_sqs_queue.order_queue.id
+      DRIVERDB_TABLE = aws_dynamodb_table.DriverDB.name
     }
   }
 }
+
+# resource "aws_lambda_event_source_mapping" "dynamodb_event_source" {
+#   event_source_arn = aws_dynamodb_table.OrderDB.stream_arn
+#   function_name = aws_lambda_function.get_driver.arn
+#   starting_position          = "LATEST"
+#   batch_size        = 1
+
+#   filter_criteria {
+#     filter {
+#       pattern = jsonencode({
+#         eventName = ["INSERT"],
+#         eventSource = ["aws:dynamodb"]
+#       })
+#     }
+#   }
+# }
 
 
 resource "aws_lambda_function" "orderput" {
@@ -56,7 +63,6 @@ resource "aws_lambda_function" "driverput" {
   environment {
     variables = {
       DYNAMODB_TABLE = aws_dynamodb_table.DriverDB.name
-      
     }
   }
 }
@@ -147,7 +153,6 @@ resource "aws_dynamodb_table" "DriverDB" {
     type = "S"
   }
 }
-###################################################
 
 ###################SQS#############################
 resource "aws_sqs_queue" "order_queue" {
