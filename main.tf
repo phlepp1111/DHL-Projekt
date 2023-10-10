@@ -20,21 +20,21 @@ resource "aws_lambda_function" "get_driver" {
   }
 }
 
-# resource "aws_lambda_event_source_mapping" "dynamodb_event_source" {
-#   event_source_arn = aws_dynamodb_table.OrderDB.stream_arn
-#   function_name = aws_lambda_function.get_driver.arn
-#   starting_position          = "LATEST"
-#   batch_size        = 1
+resource "aws_lambda_event_source_mapping" "dynamodb_event_source" {
+  event_source_arn = aws_dynamodb_table.OrderDB.stream_arn
+  function_name = aws_lambda_function.get_driver.arn
+  starting_position          = "LATEST"
+  batch_size        = 1
 
-#   filter_criteria {
-#     filter {
-#       pattern = jsonencode({
-#         eventName = ["INSERT"],
-#         eventSource = ["aws:dynamodb"]
-#       })
-#     }
-#   }
-# }
+  filter_criteria {
+    filter {
+      pattern = jsonencode({
+        eventName = ["INSERT"],
+        eventSource = ["aws:dynamodb"]
+      })
+    }
+  }
+}
 
 
 resource "aws_lambda_function" "orderput" {

@@ -8,6 +8,32 @@ sqs_queue_url = os.environ["SQS_QUEUE_URL"]
 dynamodb = boto3.client("dynamodb")
 
 
+def update_driver_status(driver_id, package_id, new_status):
+    # Update the driver status in the "Drivers" DynamoDB table
+    status_response = dynamodb.update_item(
+        TableName="Drivers",
+        Key={"driverID": driver_id},
+        UpdateExpression="SET driverstatus = :new_status",
+        ExpressionAttributeValues={":new_status": {"S": new_status}},
+    )
+    lieferung_response = dynamodb.update_item(
+        TableName="Drivers",
+        Key={"driverID": driver_id},
+        UpdateExpression="SET lieferung = :package_id",
+        ExpressionAttributeValues={":package_id": {"S": package_id}},
+    )
+
+
+def update_order_status(package_id, new_status):
+    # Update the order status in the "Orders" DynamoDB table
+    response = dynamodb.update_item(
+        TableName="Orders",
+        Key={"packageID": {"S": package_id}},
+        UpdateExpression="SET lieferstatus = :new_status",
+        ExpressionAttributeValues={":new_status": {"S": new_status}},
+    )
+
+
 def lambda_handler(event, context):
     try:
         driver_response = dynamodb.scan(
@@ -34,6 +60,12 @@ def lambda_handler(event, context):
                 message_body = json.loads(first_message["Body"])
                 print(f"Message body: {message_body}")
 
+                package_id = message_body.get("packageID")
+                driver_id = first_available_driver.get("driverID")
+
+                update_driver_status(driver_id, package_id, "not available")
+                update_order_status(package_id, f"bei Fahrer {driver_id}")
+
                 sqs.delete_message(
                     QueueUrl=sqs_queue_url, ReceiptHandle=first_message["ReceiptHandle"]
                 )
@@ -45,7 +77,7 @@ def lambda_handler(event, context):
 
             return {
                 "statusCode": 200,
-                "body": f"New order: {message_body.get('packageID')} is matched with driver {first_available_driver.get('driverID')}",
+                "body": f"New order: {package_id} is matched with driver {driver_id}",
             }
         else:
             return {
