@@ -7,6 +7,8 @@ sqs_queue_url = os.environ["SQS_QUEUE_URL"]
 
 dynamodb = boto3.client("dynamodb")
 
+ses = boto3.client("ses")
+
 
 def update_driver_status(driver_id, package_id, new_status):
     # Update the driver status in the "Drivers" DynamoDB table
@@ -34,6 +36,26 @@ def update_order_status(package_id, new_status):
     )
 
 
+def send_email(first_available_driver, message_body):
+    # Send an email to the customer
+    sender_email = "philipp.neumann@docc.techstarter.de"
+    recipient_email = "philipp.neumann+fahrer@docc.techstarter.de"
+
+    subject = "Bitte Paket ausfahren"
+    body_text = f"Hallo, {first_available_driver.get('driver_name')}. Bitte fahren Sie folgendes Paket aus. Vielen Dank! {message_body}"
+
+    ses.send_email(
+        Source=sender_email,
+        Destination={"ToAddresses": [recipient_email]},
+        Message={
+            "Subject": {"Data": subject},
+            "Body": {
+                "Text": {"Data": body_text},
+            },
+        },
+    )
+
+
 def lambda_handler(event, context):
     try:
         driver_response = dynamodb.scan(
@@ -45,8 +67,7 @@ def lambda_handler(event, context):
         available_drivers = driver_response.get("Items", [])
         if available_drivers:
             first_available_driver = available_drivers[0]
-            # Display information about the first available driver
-            print(f"First available driver: {first_available_driver}")
+            # print(f"First available driver: {first_available_driver}")
 
             sqs_response = sqs.receive_message(
                 QueueUrl=sqs_queue_url,
@@ -58,7 +79,7 @@ def lambda_handler(event, context):
             if messages:
                 first_message = messages[0]
                 message_body = json.loads(first_message["Body"])
-                print(f"Message body: {message_body}")
+                # print(f"Message body: {message_body}")
 
                 package_id = message_body.get("packageID")
                 driver_id = first_available_driver.get("driverID")
@@ -69,6 +90,8 @@ def lambda_handler(event, context):
                 sqs.delete_message(
                     QueueUrl=sqs_queue_url, ReceiptHandle=first_message["ReceiptHandle"]
                 )
+                send_email(first_available_driver, message_body)
+
             else:
                 return {
                     "statusCode": 500,

@@ -93,6 +93,12 @@ resource "aws_iam_policy_attachment" "sqs_exec_policy" {
   roles      = [aws_iam_role.lambda_exec_role.name]
 }
 
+resource "aws_iam_policy_attachment" "ses_access_policy" {
+  name = "Lambda-SES"
+  policy_arn = aws_iam_policy.ses_access_policy.arn
+  roles      = [aws_iam_role.lambda_exec_role.name]
+}
+
 resource "aws_iam_policy" "lambda_policy" {
   name = "lambda-policy"
 
@@ -117,7 +123,23 @@ resource "aws_iam_policy" "lambda_policy" {
   })
 }
 
+resource "aws_iam_policy" "ses_access_policy" {
+  name = "ses-access-policy"
 
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail",
+        ],
+        Effect   = "Allow",
+        Resource = "*",
+      },
+    ],
+  })
+}
 
 
 ############################DynamoDB############################
@@ -125,8 +147,8 @@ resource "aws_iam_policy" "lambda_policy" {
 resource "aws_dynamodb_table" "OrderDB" {
   name           = "Orders"
   hash_key = "packageID"
-  read_capacity = 20
-  write_capacity = 20
+  read_capacity = 1
+  write_capacity = 1
 
   #stream aktivieren
   stream_view_type = "NEW_IMAGE"
@@ -141,8 +163,8 @@ resource "aws_dynamodb_table" "OrderDB" {
 resource "aws_dynamodb_table" "DriverDB" {
   name           = "Drivers"
   hash_key = "driverID"
-  read_capacity = 20
-  write_capacity = 20
+  read_capacity = 1
+  write_capacity = 1
 
   #stream aktivieren
   stream_view_type = "NEW_IMAGE"
@@ -159,6 +181,25 @@ resource "aws_sqs_queue" "order_queue" {
   name                        = "order-queue.fifo"
   fifo_queue                  = true
   content_based_deduplication = true
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.dlqueue.arn
+    maxReceiveCount     = 4
+  })
+}
+resource "aws_sqs_queue" "dlqueue" {
+  name = "dlqueue.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = true
+}
+
+resource "aws_sqs_queue_redrive_allow_policy" "dlqueue_policy" {
+  queue_url = aws_sqs_queue.dlqueue.id
+
+  redrive_allow_policy = jsonencode({
+    redrivePermission = "byQueue",
+    sourceQueueArns   = [aws_sqs_queue.order_queue.arn]
+  })
 }
 
 resource "aws_iam_policy" "sqs_policy" {
